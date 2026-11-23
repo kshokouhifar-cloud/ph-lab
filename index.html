@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>آزمایشگاه مجازی علوم - کیاشا شکوهی فر</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Vazirmatn', 'Tahoma', 'Segoe UI', sans-serif;
+    background: linear-gradient(160deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 1150px;
+    margin: 0 auto;
+    background: #f5f7fb;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+  }
+
+  header {
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    color: #fff;
+    padding: 25px 30px;
+    text-align: center;
+  }
+  header h1 { font-size: 1.6rem; margin-bottom: 8px; }
+  header p { font-size: 1.1rem; opacity: 0.9; font-weight: bold; color: #ffd700; }
+
+  .hint {
+    background: #fff8e1;
+    color: #6d4c00;
+    padding: 14px 20px;
+    text-align: center;
+    font-size: 1.05rem;
+    border-bottom: 1px solid #ffe082;
+    transition: all 0.3s;
+  }
+  .hint.success { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+  .hint.warn { background: #ffebee; color: #c62828; border-color: #ef9a9a; }
+
+  .workspace {
+    display: grid;
+    grid-template-columns: 270px 1fr;
+    min-height: 520px;
+  }
+
+  /* ===== قفسه ===== */
+  .shelf {
+    background: linear-gradient(180deg, #e8eaf6, #c5cae9);
+    padding: 16px;
+    border-left: 2px solid #b0bec5;
+    display: flex; flex-direction: column;
+    max-height: 720px; overflow-y: auto;
+  }
+  .shelf::-webkit-scrollbar { width: 8px; }
+  .shelf::-webkit-scrollbar-thumb { background: #9fa8da; border-radius: 4px; }
+
+  .shelf-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .shelf-title {
+    font-size: 0.85rem; color: #3949ab; font-weight: bold;
+    padding: 4px 0 6px; border-bottom: 2px dashed #b0bec5; margin-bottom: 4px;
+  }
+
+  .bottle {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; border: 3px solid transparent; border-radius: 12px;
+    padding: 9px 12px; cursor: grab;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    font-family: inherit; font-size: 0.9rem; text-align: right;
+    user-select: none; touch-action: none;
+  }
+  .bottle:hover { transform: translateX(-4px); box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
+  .bottle:active { cursor: grabbing; }
+  .bottle.dragging { opacity: 0.35; transform: scale(0.92); border-color: #ffb400; }
+  .bottle.selected {
+    border-color: #ffb400; background: #fffde7;
+    transform: translateX(-4px) scale(1.03);
+    box-shadow: 0 6px 20px rgba(255,180,0,0.4);
+  }
+  .bottle.selected::after { content: '🖐️'; margin-right: auto; font-size: 1.2rem; }
+  .bottle .emoji {
+    font-size: 1.5rem; width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    background: #f5f7fb; border-radius: 10px; flex-shrink: 0;
+  }
+  .bottle .info { flex: 1; min-width: 0; }
+  .bottle .name { font-weight: bold; color: #1e3c72; font-size: 0.92rem; }
+
+  /* ===== Ghost Bottle ===== */
+  .drag-ghost {
+    position: fixed; transform: translate(-50%, -100%);
+    pointer-events: none; z-index: 9999;
+    display: flex; flex-direction: column; align-items: center;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.35));
+  }
+  .ghost-emoji { font-size: 3rem; display: block; animation: ghostWiggle 0.3s infinite; }
+  @keyframes ghostWiggle {
+    0%, 100% { transform: rotate(-8deg) translateY(0); }
+    50%      { transform: rotate(8deg) translateY(-3px); }
+  }
+  .ghost-drop {
+    width: 14px; height: 14px; border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg); margin-top: -6px;
+    box-shadow: 0 2px 6px rgba(100,181,246,0.6);
+    animation: ghostDrop 0.7s infinite;
+  }
+  @keyframes ghostDrop {
+    0%, 100% { transform: rotate(-45deg) scale(1); opacity: 1; }
+    50%      { transform: rotate(-45deg) scale(1.2); opacity: 0.65; }
+  }
+
+  /* ===== Ghost Paper ===== */
+  .drag-paper-ghost {
+    position: fixed;
+    transform: translate(-50%, -50%);
+    width: 85px; height: 120px;
+    border-radius: 12px;
+    pointer-events: none;
+    z-index: 9999;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    border: 3px solid rgba(255,255,255,0.8);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    font-weight: bold;
+    animation: float 0.5s ease infinite alternate;
+  }
+  @keyframes float {
+    from { transform: translate(-50%, -50%) scale(1); }
+    to   { transform: translate(-50%, -50%) scale(1.05); }
+  }
+
+  /* ===== میز ===== */
+  .bench {
+    padding: 22px;
+    background: linear-gradient(180deg, #f5f7fb 0%, #e3e7f1 100%);
+    display: flex; flex-direction: column; gap: 15px;
+  }
+
+  .papers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+  }
+
+  /* ===== کاغذ pH ===== */
+  .paper {
+    position: relative;
+    background: #fff; border-radius: 14px;
+    padding: 16px 10px; text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: box-shadow 0.2s, border-color 0.2s, background 0.5s ease;
+    border: 3px solid transparent;
+    cursor: pointer;
+    user-select: none;
+    touch-action: none;
+    overflow: hidden;
+  }
+
+  .paper.wet { cursor: grab; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+  .paper.wet .paper-label { color: rgba(255,255,255,0.9); }
+  .paper.wet .strip { opacity: 0.2; }
+  .paper.wet .result { color: #fff; }
+  .paper.wet .result strong { color: #fff; }
+  .paper.wet .result span { color: rgba(255,255,255,0.9) !important; }
+
+  .paper.dragging-paper { opacity: 0.3; }
+
+  .paper .paper-label {
+    font-size: 0.82rem; color: #666;
+    margin-bottom: 8px; font-weight: bold;
+  }
+  .paper .strip {
+    width: 55px; height: 95px; margin: 0 auto 8px;
+    background: linear-gradient(180deg, #fafafa, #ececec);
+    border: 1px solid #d0d0d0; border-radius: 4px;
+    transition: background 0.5s ease, opacity 0.5s ease; position: relative;
+    box-shadow: inset 0 0 6px rgba(0,0,0,0.06);
+  }
+  .paper .result {
+    font-size: 0.76rem; color: #555;
+    min-height: 2.6em; line-height: 1.4;
+  }
+  .paper .result strong { display: block; color: #1e3c72; }
+
+  body.is-dragging .paper {
+    border-color: #64b5f6;
+    box-shadow: 0 0 0 3px rgba(100,181,246,0.2);
+  }
+  body.is-dragging .paper.hover-target {
+    border-color: #43a047;
+    box-shadow: 0 0 0 4px rgba(67,160,71,0.35), 0 8px 20px rgba(67,160,71,0.25);
+    transform: translateY(-6px) scale(1.04);
+  }
+
+  .falling-drop {
+    position: absolute; top: 0; left: 50%;
+    width: 16px; height: 16px;
+    border-radius: 50% 50% 50% 0;
+    transform: translateX(-50%) rotate(-45deg);
+    animation: fall 0.75s cubic-bezier(0.3, 0.8, 0.5, 1) forwards;
+    z-index: 5; box-shadow: 0 0 8px rgba(0,0,0,0.2);
+  }
+  @keyframes fall {
+    0%   { top: 5px;   opacity: 1; }
+    70%  { top: 95px;  opacity: 1; }
+    100% { top: 105px; opacity: 0; transform: translateX(-50%) rotate(-45deg) scale(0.5); }
+  }
+
+  /* ===== نمودار دقیق (از چپ به راست) ===== */
+  .chart {
+    background: #fff;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    position: relative;
+  }
+  .chart h3 {
+    font-size: 0.95rem; color: #1e3c72;
+    margin-bottom: 10px; text-align: center;
+  }
+  .scale-container {
+    position: relative;
+    padding: 10px 0;
+  }
+  .scale {
+    display: flex; height: 45px;
+    border-radius: 8px; overflow: hidden;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+    position: relative;
+    direction: ltr; /* چپ به راست: 0 تا 14 */
+  }
+  .scale div {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; color: rgba(255,255,255,0.9);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  }
+
+  #scale-marker {
+    position: absolute;
+    top: -5px; bottom: -5px;
+    width: 4px;
+    background: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    border-radius: 2px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s, left 0.05s linear;
+    z-index: 10;
+  }
+  #scale-marker::before {
+    content: '▼';
+    position: absolute;
+    top: -20px; left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    font-size: 1rem;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+  #scale-marker.match {
+    background: #43a047;
+    box-shadow: 0 0 15px rgba(67,160,71,0.8);
+  }
+  #scale-marker.match::before {
+    content: '✔';
+    color: #43a047;
+    font-size: 1.2rem;
+  }
+
+  .scale-labels {
+    display: flex; justify-content: space-between;
+    font-size: 0.8rem; color: #666; margin-top: 6px;
+    direction: ltr;
+  }
+
+  .info-panel {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: #e3f2fd;
+    border-right: 5px solid #1976d2;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    color: #0d47a1;
+    min-height: 44px;
+  }
+  .info-panel strong  { display: block; margin-bottom: 3px; font-size: 0.95rem; }
+
+  /* ===== جدول ===== */
+  .results-section {
+    padding: 30px;
+    background: #fff;
+    border-top: 4px solid #ffb400;
+  }
+  .results-section h2 {
+    color: #1e3c72; font-size: 1.5rem;
+    margin-bottom: 8px; text-align: center;
+  }
+  .results-section .sub {
+    text-align: center; color: #666;
+    font-size: 0.95rem; margin-bottom: 20px;
+  }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    justify-content: center; margin-bottom: 18px;
+  }
+  .toolbar button {
+    font-family: inherit; font-size: 0.9rem;
+    padding: 10px 18px; border-radius: 25px;
+    border: none; cursor: pointer; font-weight: bold;
+    transition: all 0.2s; color: #fff;
+  }
+  .toolbar button:hover  { transform: translateY(-2px); }
+  .toolbar button:active { transform: translateY(0); }
+
+  .btn-sort     { background: linear-gradient(135deg, #1e88e5, #1565c0); box-shadow: 0 4px 12px rgba(30,136,229,0.35); }
+  .btn-copy     { background: linear-gradient(135deg, #8e24aa, #6a1b9a); box-shadow: 0 4px 12px rgba(142,36,170,0.35); }
+  .btn-clear    { background: linear-gradient(135deg, #757575, #424242); box-shadow: 0 4px 12px rgba(117,117,117,0.35); }
+
+  .table-wrap { overflow-x: auto; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+  table.result-table {
+    width: 100%; border-collapse: collapse;
+    min-width: 620px; background: #fff;
+  }
+  table.result-table th {
+    background: #1e3c72; color: #fff;
+    padding: 13px 10px; font-size: 0.92rem;
+    text-align: center; white-space: nowrap;
+  }
+  table.result-table td {
+    padding: 8px;
+    border-bottom: 1px solid #eef1f5;
+    vertical-align: middle;
+    font-size: 0.9rem;
+  }
+  table.result-table tr:nth-child(even) td { background: #fafbfd; }
+  table.result-table tr:hover td { background: #fff8e1; }
+
+  .rank-cell {
+    text-align: center; font-weight: bold;
+    color: #1e3c72; width: 60px; font-size: 1rem;
+  }
+  .rank-cell .medal { font-size: 1.4rem; }
+
+  .name-cell { text-align: right; padding: 10px 14px !important; }
+  .name-text {
+    font-weight: bold; color: #1e3c72;
+    font-size: 0.92rem; white-space: nowrap;
+  }
+
+  table.result-table input,
+  table.result-table select {
+    width: 100%; padding: 8px 10px;
+    border: 1.5px solid #d0d7e2; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem;
+    background: #fff; color: #333; outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  table.result-table input:focus,
+  table.result-table select:focus {
+    border-color: #2a5298;
+    box-shadow: 0 0 0 3px rgba(42,82,152,0.15);
+  }
+  .ph-cell input { text-align: center; font-weight: bold; }
+
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #2e7d32; color: #fff;
+    padding: 13px 26px; border-radius: 30px;
+    font-weight: bold;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    opacity: 0; transition: all 0.35s; z-index: 10000;
+    font-family: inherit;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.error { background: #c62828; }
+
+  .actions {
+    text-align: center; padding: 20px;
+    background: #f5f7fb;
+    border-top: 1px solid #e0e0e0;
+  }
+  .btn-reset {
+    background: linear-gradient(135deg, #e53935, #c62828);
+    color: #fff; border: none;
+    padding: 12px 32px; border-radius: 30px;
+    font-size: 1rem; font-family: inherit;
+    cursor: pointer; font-weight: bold;
+    box-shadow: 0 4px 15px rgba(229,57,53,0.4);
+    transition: all 0.2s;
+  }
+  .btn-reset:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(229,57,53,0.5); }
+
+  /* ===== انیمیشن باران ستاره ===== */
+  .star {
+    position: fixed;
+    top: -50px;
+    z-index: 99999;
+    pointer-events: none;
+    animation: fallStar 3.5s linear forwards;
+  }
+  @keyframes fallStar {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  @media (max-width: 760px) {
+    .workspace { grid-template-columns: 1fr; }
+    .shelf {
+      border-left: none; border-bottom: 2px solid #b0bec5;
+      max-height: none; overflow: visible;
+    }
+    .shelf-group { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+    .shelf-title { width: 100%; text-align: center; }
+    .bottle { flex: 1; min-width: 130px; justify-content: center; }
+    .bottle .info { flex: 0; }
+    .bottle.selected::after { display: none; }
+    header h1 { font-size: 1.25rem; }
+    header p { font-size: 0.95rem; }
+    .results-section { padding: 18px 12px; }
+    .scale div { font-size: 0.55rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>آزمایشگاه مجازی علوم - کیاشا شکوهی فر</h1>
+    <p>آزمایش تعیین pH</p>
+  </header>
+
+  <div class="hint" id="hint">👆 مرحله ۱: یک قطره‌چکان را از قفسه بکش و روی کاغذ pH رها کن.</div>
+
+  <div class="workspace">
+    <!-- قفسه (مرتب‌شده از اسیدی به بازی) -->
+    <aside class="shelf">
+      <div class="shelf-group">
+        <div class="shelf-title">🍎 میوه‌ها</div>
+
+        <button class="bottle" data-name="آب لیمو" data-ph="2.4" data-emoji="🍋">
+          <div class="emoji">🍋</div>
+          <div class="info"><div class="name">آب لیمو</div></div>
+        </button>
+
+        <button class="bottle" data-name="آب سیب" data-ph="3.3" data-emoji="🍎">
+          <div class="emoji">🍎</div>
+          <div class="info"><div class="name">آب سیب</div></div>
+        </button>
+
+        <button class="bottle" data-name="آب کیوی" data-ph="3.4" data-emoji="🥝">
+          <div class="emoji">🥝</div>
+          <div class="info"><div class="name">آب کیوی</div></div>
+        </button>
+
+        <button class="bottle" data-name="آب پرتقال" data-ph="3.5" data-emoji="🍊">
+          <div class="emoji">🍊</div>
+          <div class="info"><div class="name">آب پرتقال</div></div>
+        </button>
+
+        <button class="bottle" data-name="آب انگور" data-ph="3.5" data-emoji="🍇">
+          <div class="emoji">🍇</div>
+          <div class="info"><div class="name">آب انگور</div></div>
+        </button>
+
+        <button class="bottle" data-name="آب توت‌فرنگی" data-ph="3.5" data-emoji="🍓">
+          <div class="emoji">🍓</div>
+          <div class="info"><div class="name">آب توت‌فرنگی</div></div>
+        </button>
+
+        <button class="bottle" data-name="آب گوجه" data-ph="4.5" data-emoji="🍅">
+          <div class="emoji">🍅</div>
+          <div class="info"><div class="name">آب گوجه</div></div>
+        </button>
+      </div>
+
+      <div class="shelf-group">
+        <div class="shelf-title">🧴 سایر مواد</div>
+
+        <button class="bottle" data-name="شیر" data-ph="6.6" data-emoji="🥛">
+          <div class="emoji">🥛</div>
+          <div class="info"><div class="name">شیر</div></div>
+        </button>
+
+        <button class="bottle" data-name="آب" data-ph="7" data-emoji="💧">
+          <div class="emoji">💧</div>
+          <div class="info"><div class="name">آب</div></div>
+        </button>
+
+        <button class="bottle" data-name="وایتکس" data-ph="13" data-emoji="🧴">
+          <div class="emoji">🧴</div>
+          <div class="info"><div class="name">وایتکس</div></div>
+        </button>
+      </div>
+    </aside>
+
+    <!-- میز -->
+    <main class="bench">
+      <div class="papers" id="papers">
+        <div class="paper"><div class="paper-label">کاغذ ۱</div><div class="strip"></div><div class="result">خالی</div></div>
+        <div class="paper"><div class="paper-label">کاغذ ۲</div><div class="strip"></div><div class="result">خالی</div></div>
+        <div class="paper"><div class="paper-label">کاغذ ۳</div><div class="strip"></div><div class="result">خالی</div></div>
+        <div class="paper"><div class="paper-label">کاغذ ۴</div><div class="strip"></div><div class="result">خالی</div></div>
+        <div class="paper"><div class="paper-label">کاغذ ۵</div><div class="strip"></div><div class="result">خالی</div></div>
+        <div class="paper"><div class="paper-label">کاغذ ۶</div><div class="strip"></div><div class="result">خالی</div></div>
+      </div>
+
+      <div class="chart">
+        <h3>🎨 نوار رنگ دقیق pH (۰ تا ۱۴)</h3>
+        <div class="scale-container">
+          <div class="scale" id="scale"></div>
+          <div id="scale-marker"></div>
+        </div>
+        <div class="scale-labels">
+          <span>🟥 اسیدی (۰)</span>
+          <span>🟩 خنثی (۷)</span>
+          <span>🟦 بازی (۱۴)</span>
+        </div>
+        <div class="info-panel" id="infoPanel">
+          💡 کاغذ خیس را بگیرید و روی نمودار بکشید. وقتی رنگ‌ها دقیقاً یکی شدند، pH روی کاغذ نوشته می‌شود.
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- جدول -->
+  <section class="results-section">
+    <h2>📋 جدول رده‌بندی</h2>
+    <p class="sub">pH را که پیدا کردی، وارد جدول کن و رده‌بندی (اسیدی/خنثی/بازی) را انتخاب کن! اگر همه را درست پر کنی جایزه می‌گیری.</p>
+
+    <div class="toolbar">
+      <button class="btn-sort"     onclick="sortTable()">📊 رده‌بندی بر اساس pH</button>
+      <button class="btn-copy"     onclick="copyTable()">📋 کپی جدول</button>
+      <button class="btn-clear"    onclick="clearTable()">🗑️ پاک کردن جدول</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="result-table" id="resultTable">
+        <thead>
+          <tr>
+            <th style="width:70px;">رده</th>
+            <th style="width:200px;">نام ماده</th>
+            <th style="width:130px;">pH</th>
+            <th style="width:170px;">رده‌بندی</th>
+          </tr>
+        </thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button class="btn-reset" onclick="resetLab()">🔄 شروع مجدد آزمایش</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">✅ انجام شد!</div>
+
+<script>
+/* ================= رنگ‌های pH ================= */
+const STOPS = [
+  [0,  [128, 0, 0]],
+  [2,  [211, 47, 47]],
+  [4,  [245, 124, 0]],
+  [6,  [251, 192, 45]],
+  [7,  [67, 160, 71]],
+  [8,  [0, 137, 123]],
+  [10, [25, 118, 210]],
+  [12, [106, 27, 154]],
+  [14, [49, 27, 146]]
+];
+
+function phToColor(ph) {
+  ph = Math.max(0, Math.min(14, ph));
+  for (let i = 0; i < STOPS.length - 1; i++) {
+    const [p1, c1] = STOPS[i];
+    const [p2, c2] = STOPS[i + 1];
+    if (ph >= p1 && ph <= p2) {
+      const t = (ph - p1) / (p2 - p1);
+      const rgb = c1.map((v, k) => Math.round(v + (c2[k] - v) * t));
+      return `rgb(${rgb.join(',')})`;
+    }
+  }
+  return 'rgb(128,0,0)';
+}
+
+/* ================= رسم نمودار دقیق 0.1 ================= */
+const scale = document.getElementById('scale');
+const marker = document.getElementById('scale-marker');
+let scaleRect = null;
+
+// 140 خانه (0.1 تا 14.0)
+for (let i = 0; i <= 140; i++) {
+  const ph = i / 10;
+  const cell = document.createElement('div');
+  cell.style.background = phToColor(ph);
+  
+  // فقط اعداد صحیح را نشان بده (0, 1, 2...)
+  if (i % 10 === 0) {
+    cell.textContent = ph;
+    cell.style.fontWeight = 'bold';
+    cell.style.fontSize = '0.75rem';
+  }
+  scale.appendChild(cell);
+}
+
+/* ================= جدول ================= */
+const DEFAULT_ROWS = [
+  { name: '🍋 آب لیمو',       truePh: 2.4, ph: '', cat: '' },
+  { name: '🍎 آب سیب',        truePh: 3.3, ph: '', cat: '' },
+  { name: '🥝 آب کیوی',       truePh: 3.4, ph: '', cat: '' },
+  { name: '🍊 آب پرتقال',     truePh: 3.5, ph: '', cat: '' },
+  { name: '🍇 آب انگور',      truePh: 3.5, ph: '', cat: '' },
+  { name: '🍓 آب توت‌فرنگی',  truePh: 3.5, ph: '', cat: '' },
+  { name: '🍅 آب گوجه',       truePh: 4.5, ph: '', cat: '' },
+  { name: '🥛 شیر',           truePh: 6.6, ph: '', cat: '' },
+  { name: '💧 آب',            truePh: 7.0, ph: '', cat: '' },
+  { name: '🧴 وایتکس',        truePh: 13.0, ph: '', cat: '' }
+];
+
+const CATEGORIES = ['اسیدی', 'خنثی', 'بازی'];
+let prizeGiven = false;
+
+function buildTable(rows) {
+  const tbody = document.getElementById('resultBody');
+  tbody.innerHTML = '';
+  rows.forEach((r) => {
+    const tr = document.createElement('tr');
+    tr.dataset.truePh = r.truePh; // ذخیره pH واقعی برای بررسی جایزه
+    
+    const options = `
+      <option value="" disabled ${!r.cat ? 'selected' : ''}>انتخاب کنید...</option>
+      ${CATEGORIES.map(c => `<option value="${c}" ${c === r.cat ? 'selected' : ''}>${c}</option>`).join('')}
+    `;
+    tr.innerHTML = `
+      <td class="rank-cell"></td>
+      <td class="name-cell"><span class="name-text">${r.name}</span></td>
+      <td class="ph-cell"><input type="number" step="0.1" min="0" max="14" placeholder="0-14" value="${r.ph}" data-field="ph"></td>
+      <td style="text-align:center;"><select data-field="cat">${options}</select></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  updateRanks();
+  attachTableListeners();
+}
+
+function updateRanks() {
+  document.querySelectorAll('#resultBody tr').forEach((tr, i) => {
+    const cell = tr.querySelector('.rank-cell');
+    if (!cell) return;
+    const medals = ['🥇', '🥈', '🥉'];
+    cell.innerHTML = medals[i] ? `<span class="medal">${medals[i]}</span>` : (i + 1);
+  });
+}
+
+/* ================= بررسی صحت جدول و جایزه ================= */
+function attachTableListeners() {
+  document.querySelectorAll('#resultBody input, #resultBody select').forEach(el => {
+    el.addEventListener('input', checkTableCompletion);
+    el.addEventListener('change', checkTableCompletion);
+  });
+}
+
+function checkTableCompletion() {
+  if (prizeGiven) return;
+
+  const rows = document.querySelectorAll('#resultBody tr');
+  let allCorrect = true;
+  let filledCount = 0;
+
+  rows.forEach(tr => {
+    const phInputVal = tr.querySelector('[data-field="ph"]').value;
+    const catSelectVal = tr.querySelector('[data-field="cat"]').value;
+    const truePh = parseFloat(tr.dataset.truePh);
+
+    if (phInputVal.trim() !== '' && catSelectVal !== '') {
+      filledCount++;
+      const inputPh = parseFloat(phInputVal);
+      const trueCat = truePh < 6.5 ? 'اسیدی' : truePh <= 7.5 ? 'خنثی' : 'بازی';
+
+      // اگر اختلاف pH بیشتر از 0.2 بود یا دسته‌بندی اشتباه بود
+      if (isNaN(inputPh) || Math.abs(inputPh - truePh) > 0.2 || catSelectVal !== trueCat) {
+        allCorrect = false;
+      }
+    } else {
+      allCorrect = false;
+    }
+  });
+
+  if (allCorrect && filledCount === rows.length) {
+    prizeGiven = true;
+    triggerStarRain();
+    showToast('🎉 تبریک! تمام جدول درست پر شد!');
+    setHint('🏆 عالی بود! شما تمام pH ها را به درستی تشخیص دادید.', 'success');
+  }
+}
+
+/* ================= انیمیشن باران ستاره ================= */
+function triggerStarRain() {
+  const stars = ['⭐', '🌟', '✨', '💫'];
+  const count = 60;
+
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const star = document.createElement('div');
+      star.className = 'star';
+      star.textContent = stars[Math.floor(Math.random() * stars.length)];
+      
+      // ویژگی‌های تصادفی
+      star.style.left = Math.random() * 100 + 'vw';
+      star.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';
+      star.style.animationDuration = (Math.random() * 2 + 2) + 's';
+      
+      document.body.appendChild(star);
+
+      // حذف پس از پایان انیمیشن
+      setTimeout(() => star.remove(), 5000);
+    }, i * 80); // تاخیر پلکانی
+  }
+}
+
+function sortTable() {
+  const rows = Array.from(document.querySelectorAll('#resultBody tr'));
+  const data = rows.map(tr => ({
+    name: tr.querySelector('.name-text').textContent,
+    truePh: parseFloat(tr.dataset.truePh),
+    ph:   parseFloat(tr.querySelector('[data-field="ph"]').value),
+    cat:  tr.querySelector('[data-field="cat"]').value
+  }));
+
+  data.sort((a, b) => {
+    if (isNaN(a.ph) && isNaN(b.ph)) return 0;
+    if (isNaN(a.ph)) return 1;
+    if (isNaN(b.ph)) return -1;
+    return a.ph - b.ph;
+  });
+
+  buildTable(data.map(d => ({
+    name: d.name,
+    truePh: d.truePh,
+    ph:   isNaN(d.ph) ? '' : d.ph,
+    cat:  d.cat
+  })));
+
+  setHint('📊 جدول بر اساس pH مرتب شد.', 'success');
+  showToast('📊 جدول رده‌بندی شد!');
+}
+
+function copyTable() {
+  const rows = document.querySelectorAll('#resultBody tr');
+  let text = 'رده | نام ماده | pH | رده‌بندی\n';
+  text += '-----|----------|-----|----------\n';
+  rows.forEach((tr, i) => {
+    const name = tr.querySelector('.name-text').textContent;
+    const ph   = tr.querySelector('[data-field="ph"]').value || '—';
+    const cat  = tr.querySelector('[data-field="cat"]').value || '—';
+    text += `${i + 1} | ${name} | ${ph} | ${cat}\n`;
+  });
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('📋 جدول کپی شد!'))
+      .catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast('📋 جدول کپی شد!'); }
+  catch (e) { showToast('❌ کپی نشد', true); }
+  ta.remove();
+}
+
+function clearTable() {
+  document.querySelectorAll('#resultBody input[data-field="ph"]').forEach(i => i.value = '');
+  document.querySelectorAll('#resultBody select[data-field="cat"]').forEach(s => s.value = '');
+  prizeGiven = false;
+  showToast('🗑️ جدول پاک شد.');
+}
+
+/* ================= Toast و Hint ================= */
+let toastTimer;
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('error', !!isError);
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+const hint = document.getElementById('hint');
+function setHint(text, type) {
+  hint.textContent = text;
+  hint.className = 'hint' + (type ? ' ' + type : '');
+}
+
+const infoPanel = document.getElementById('infoPanel');
+function resetInfo() {
+  infoPanel.innerHTML = '💡 کاغذ خیس را بگیرید و روی نمودار بکشید. وقتی رنگ‌ها دقیقاً یکی شدند، pH روی کاغذ نوشته می‌شود.';
+}
+function showMatchInfo(emoji, name, ph) {
+  const cat = ph < 6.5 ? 'اسیدی' : ph <= 7.5 ? 'خنثی' : 'بازی';
+  infoPanel.innerHTML = `<strong>🎯 ${emoji} ${name}</strong>رنگ با موفقیت تطبیق داده شد! pH = ${ph} (${cat}). حالا این عدد را در جدول وارد کنید.`;
+}
+
+/* ================= انتخاب/کشیدن بطری ================= */
+let selectedBottle = null;
+let pendingBottleDrag = null;
+
+document.querySelectorAll('.bottle').forEach(btn => {
+  btn.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    pendingBottleDrag = {
+      name: btn.dataset.name,
+      ph: parseFloat(btn.dataset.ph),
+      emoji: btn.dataset.emoji,
+      btn: btn,
+      startX: e.clientX, startY: e.clientY,
+      ghost: null
+    };
+    document.addEventListener('pointermove', onBottleMove);
+    document.addEventListener('pointerup', onBottleUp);
+    document.addEventListener('pointercancel', onBottleCancel);
+  });
+});
+
+function onBottleMove(e) {
+  if (!pendingBottleDrag) return;
+  if (!pendingBottleDrag.ghost) {
+    const dx = e.clientX - pendingBottleDrag.startX;
+    const dy = e.clientY - pendingBottleDrag.startY;
+    if (dx * dx + dy * dy < 25) return;
+    const g = document.createElement('div');
+    g.className = 'drag-ghost';
+    g.innerHTML = `
+      <span class="ghost-emoji">${pendingBottleDrag.emoji}</span>
+      <span class="ghost-drop" style="background:${phToColor(pendingBottleDrag.ph)};"></span>`;
+    document.body.appendChild(g);
+    pendingBottleDrag.ghost = g;
+    pendingBottleDrag.btn.classList.add('dragging');
+    document.body.classList.add('is-dragging');
+    document.querySelectorAll('.bottle').forEach(b => b.classList.remove('selected'));
+    selectedBottle = null;
+  }
+  pendingBottleDrag.ghost.style.left = e.clientX + 'px';
+  pendingBottleDrag.ghost.style.top  = e.clientY + 'px';
+
+  document.querySelectorAll('.paper').forEach(p => p.classList.remove('hover-target'));
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const paper = el ? el.closest('.paper') : null;
+  if (paper && !paper.dataset.ph) paper.classList.add('hover-target');
+}
+
+function onBottleUp(e) {
+  if (!pendingBottleDrag) return;
+  if (pendingBottleDrag.ghost) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const paper = el ? el.closest('.paper') : null;
+    if (paper) {
+      const src = {
+        name: pendingBottleDrag.name,
+        ph: pendingBottleDrag.ph,
+        emoji: pendingBottleDrag.emoji
+      };
+      cleanupBottleDrag();
+      dripOnPaper(paper, src);
+      return;
+    }
+  } else {
+    selectBottle(pendingBottleDrag);
+  }
+  cleanupBottleDrag();
+}
+
+function onBottleCancel() { cleanupBottleDrag(); }
+
+function cleanupBottleDrag() {
+  if (!pendingBottleDrag) return;
+  if (pendingBottleDrag.ghost) pendingBottleDrag.ghost.remove();
+  pendingBottleDrag.btn.classList.remove('dragging');
+  document.body.classList.remove('is-dragging');
+  document.querySelectorAll('.paper').forEach(p => p.classList.remove('hover-target'));
+  document.removeEventListener('pointermove', onBottleMove);
+  document.removeEventListener('pointerup', onBottleUp);
+  document.removeEventListener('pointercancel', onBottleCancel);
+  pendingBottleDrag = null;
+}
+
+function selectBottle(data) {
+  document.querySelectorAll('.bottle').forEach(b => b.classList.remove('selected'));
+  data.btn.classList.add('selected');
+  selectedBottle = { name: data.name, ph: data.ph, emoji: data.emoji };
+  setHint(`👐 ${data.name} را برداشتی. حالا روی یک کاغذ pH کلیک کن!`);
+}
+
+/* ================= چکاندن روی کاغذ ================= */
+function dripOnPaper(paper, src) {
+  if (paper.dataset.ph) {
+    setHint(`⚠️ این کاغذ قبلاً خیس شده. کاغذ دیگری انتخاب کن!`, 'warn');
+    showToast('⚠️ این کاغذ قبلاً استفاده شده', true);
+    return;
+  }
+
+  const color = phToColor(src.ph);
+
+  const drop = document.createElement('div');
+  drop.className = 'falling-drop';
+  drop.style.background = src.emoji === '🧴' ? '#b3e5fc' : color;
+  paper.appendChild(drop);
+  setTimeout(() => drop.remove(), 800);
+
+  setTimeout(() => {
+    paper.style.backgroundColor = color;
+    paper.classList.add('wet');
+    paper.querySelector('.result').innerHTML = `<strong>${src.name}</strong>pH: ؟`;
+    paper.querySelector('.strip').style.background = 'rgba(255,255,255,0.3)';
+    paper.querySelector('.strip').classList.add('wet');
+    
+    paper.dataset.ph = src.ph;
+    paper.dataset.name = src.name;
+    paper.dataset.emoji = src.emoji;
+    paper.dataset.analyzed = 'false';
+
+    setHint(`✅ ${src.emoji} ${src.name} روی کاغذ چکیده شد. حالا کاغذ را بگیر و روی نمودار بکش!`, 'success');
+  }, 550);
+
+  selectedBottle = null;
+  document.querySelectorAll('.bottle').forEach(b => b.classList.remove('selected'));
+}
+
+/* ================= کلیک روی کاغذ خشک ================= */
+document.querySelectorAll('.paper').forEach(paper => {
+  paper.addEventListener('click', (e) => {
+    if (!selectedBottle) return;
+    if (paper.dataset.ph) return;
+    if (document.body.classList.contains('is-dragging')) return;
+    if (Date.now() - (paper._lastDragEnd || 0) < 300) return;
+    dripOnPaper(paper, selectedBottle);
+  });
+});
+
+/* ================= 🎯 کشیدن کاغذ روی نمودار ================= */
+let activePaper = null;
+let paperGhost = null;
+let currentTargetPh = 0;
+let isMatch = false;
+
+document.querySelectorAll('.paper').forEach(paper => {
+  paper.addEventListener('pointerdown', (e) => {
+    if (!paper.dataset.ph) return; // فقط کاغذ خیس
+    if (paper.dataset.analyzed === 'true') return; // اگر قبلاً تحلیل شده
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+
+    activePaper = paper;
+    const actualPh = parseFloat(paper.dataset.ph);
+    paper.classList.add('dragging-paper');
+
+    // ساخت Ghost
+    paperGhost = document.createElement('div');
+    paperGhost.className = 'drag-paper-ghost';
+    paperGhost.style.backgroundColor = phToColor(actualPh);
+    paperGhost.innerHTML = `<span>${paper.dataset.emoji}</span><span style="font-size:0.8rem;">${paper.dataset.name}</span>`;
+    document.body.appendChild(paperGhost);
+
+    document.addEventListener('pointermove', onPaperMove);
+    document.addEventListener('pointerup', onPaperUp);
+  });
+});
+
+function onPaperMove(e) {
+  if (!activePaper || !paperGhost) return;
+
+  // آپدیت موقعیت Ghost
+  paperGhost.style.left = e.clientX + 'px';
+  paperGhost.style.top = e.clientY + 'px';
+
+  // بررسی تداخل با نوار رنگ
+  scaleRect = scale.getBoundingClientRect();
+  
+  if (e.clientX >= scaleRect.left && e.clientX <= scaleRect.right && 
+      e.clientY >= scaleRect.top - 20 && e.clientY <= scaleRect.bottom + 20) {
+    
+    // محاسبه pH بر اساس موقعیت افقی (چپ=0، راست=14)
+    let percent = (e.clientX - scaleRect.left) / scaleRect.width;
+    percent = Math.max(0, Math.min(1, percent));
+    currentTargetPh = percent * 14;
+
+    const actualPh = parseFloat(activePaper.dataset.ph);
+    const diff = Math.abs(currentTargetPh - actualPh);
+
+    // نمایش نشانگر روی نمودار
+    marker.style.opacity = '1';
+    marker.style.left = (percent * 100) + '%';
+
+    // آستانه تطبیق (0.3 pH)
+    if (diff <= 0.3) {
+      isMatch = true;
+      marker.classList.add('match');
+      paperGhost.style.borderColor = '#43a047';
+      paperGhost.style.boxShadow = '0 0 20px rgba(67,160,71,0.8)';
+    } else {
+      isMatch = false;
+      marker.classList.remove('match');
+      paperGhost.style.borderColor = 'rgba(255,255,255,0.8)';
+      paperGhost.style.boxShadow = '0 15px 35px rgba(0,0,0,0.4)';
+    }
+  } else {
+    marker.style.opacity = '0';
+    isMatch = false;
+  }
+}
+
+function onPaperUp(e) {
+  document.removeEventListener('pointermove', onPaperMove);
+  document.removeEventListener('pointerup', onPaperUp);
+
+  if (!activePaper) return;
+
+  if (isMatch) {
+    // تطبیق موفقیت‌آمیز بود
+    const actualPh = parseFloat(activePaper.dataset.ph);
+    const cat = actualPh < 6.5 ? 'اسیدی' : actualPh <= 7.5 ? 'خنثی' : 'بازی';
+    
+    activePaper.dataset.analyzed = 'true';
+    activePaper.querySelector('.result').innerHTML = `<strong>${actualPh}</strong>pH = ${actualPh}<br><span style="font-size:0.65rem;opacity:0.9;">${cat}</span>`;
+    
+    showMatchInfo(activePaper.dataset.emoji, activePaper.dataset.name, actualPh);
+    setHint(`🎯 آفرین! pH = ${actualPh} پیدا شد. حالا آن را در جدول وارد کن.`, 'success');
+    showToast('🎯 تطبیق دقیق!');
+    
+    // افکت بصری
+    activePaper.style.transition = 'transform 0.3s';
+    activePaper.style.transform = 'scale(1.1)';
+    setTimeout(() => activePaper.style.transform = '', 300);
+  } else {
+    // اگر تطبیق نبود
+    setHint(`❌ هنوز تطبیق نیست. دوباره کاغذ را روی نوار رنگ حرکت بده.`, 'warn');
+  }
+
+  // پاکسازی
+  activePaper.classList.remove('dragging-paper');
+  if (paperGhost) paperGhost.remove();
+  paperGhost = null;
+  activePaper = null;
+  marker.style.opacity = '0';
+  marker.classList.remove('match');
+  isMatch = false;
+}
+
+/* ================= ریست ================= */
+function resetLab() {
+  document.querySelectorAll('.bottle').forEach(b => b.classList.remove('selected', 'dragging'));
+  document.querySelectorAll('.paper').forEach(p => {
+    p.style.backgroundColor = '#fff';
+    p.classList.remove('wet', 'dragging-paper', 'hover-target');
+    
+    const strip = p.querySelector('.strip');
+    strip.style.background = 'linear-gradient(180deg, #fafafa, #ececec)';
+    strip.classList.remove('wet');
+    
+    p.querySelector('.result').textContent = 'خالی';
+    
+    delete p.dataset.ph;
+    delete p.dataset.name;
+    delete p.dataset.emoji;
+    delete p.dataset.analyzed;
+  });
+  selectedBottle = null;
+  cleanupBottleDrag();
+  resetInfo();
+  marker.style.opacity = '0';
+  marker.classList.remove('match');
+  prizeGiven = false;
+  
+  // پاک کردن ستاره‌های باقیمانده
+  document.querySelectorAll('.star').forEach(s => s.remove());
+
+  setHint('👆 مرحله ۱: یک قطره‌چکان را از قفسه بکش و روی کاغذ pH رها کن.');
+  showToast('🔄 آزمایشگاه ریست شد');
+}
+
+/* ================= راه‌اندازی ================= */
+buildTable(DEFAULT_ROWS);
+</script>
+</body>
+</html>
